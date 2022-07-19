@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Takoyaki Master</string>
+    <string name="score_display">Times up! You made %s</string>
+    <string name="start_button">Tap to Start</string>
+</resources>

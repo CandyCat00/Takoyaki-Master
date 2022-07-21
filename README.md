@@ -1,8 +1,9 @@
 # Overview
 
-This is a speed cooking app where the goal is just to cool as much Takoyaki as possible within a time limit. It will also use a database to record and compare high scores.
+This is a speed cooking app where the goal is just to cool as much Takoyaki as possible within a time limit. It also uses a database to record and compare high scores.
 
 [Software Demo Video](https://youtu.be/VAwlA2KOyzU)
+[Database Update](https://youtu.be/wYHH5AlEbuE)
 
 # Development Environment
 

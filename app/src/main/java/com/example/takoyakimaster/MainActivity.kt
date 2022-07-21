@@ -8,9 +8,16 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.media.MediaPlayer
+import android.util.Log
+import android.widget.EditText
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 
 class MainActivity : AppCompatActivity() {
+
+    val db = Firebase.firestore
 
     //cooking tools
     private var greaserTool = false
@@ -25,10 +32,11 @@ class MainActivity : AppCompatActivity() {
     private var piper = false
 
     //game progression assets
-    private var score = 0
+    private var score = 36
+    private var name = "Starfy"
     private var gamestarted = false
     private lateinit var countDownTimer: CountDownTimer
-    internal val initialCountDown: Long = 120000
+    internal val initialCountDown: Long = 30000
     internal val countDownInterval: Long = 1000
 
     private lateinit var timerTV: TextView
@@ -39,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.score_screen)
+        displayHighscores()
         if (mMediaPlayer == null) {
             mMediaPlayer = MediaPlayer.create(this, R.raw.menu_song)
             mMediaPlayer!!.isLooping = true
@@ -72,12 +81,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun endGame() {
+        //switch to the score screen
         setContentView(R.layout.score_screen)
-        //stop music
-        if (mMediaPlayer != null) {
+        displayHighscores()
+        //switch back to menu music
+        if (mMediaPlayer != MediaPlayer.create(this, R.raw.menu_song)) {
             mMediaPlayer!!.stop()
-            mMediaPlayer!!.release()
-            mMediaPlayer = null
+            mMediaPlayer = MediaPlayer.create(this, R.raw.menu_song)
+            mMediaPlayer!!.isLooping = true
+            mMediaPlayer!!.start()
         }
     }
 
@@ -97,7 +109,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onFinish() {
-                endGame()
+                checkScore()
             }
         }
         gamestarted = false
@@ -173,5 +185,91 @@ class MainActivity : AppCompatActivity() {
             else if (pokeTool && view.drawable.level == 4) { view.setImageLevel(5) }
             else if (pokeTool && view.drawable.level == 5) { view.setImageLevel(0); score += 1 }
         }
+    }
+
+    fun setName(view: View) {
+        if (view is Button) {
+            val username = findViewById<EditText>(R.id.name_edit).text.toString()
+            if (username != "") {
+                name = username
+                addHighscore()
+            }
+        }
+    }
+
+    fun checkScore(){
+        var highscore = false
+        db.collection("highscores").orderBy("score", Query.Direction.DESCENDING)
+            .limit(5).get()
+            .addOnSuccessListener { result ->
+                for (document in result) {
+                    println("Your score was ${document.get("score").toString().toInt()}")
+                    if (score > document.get("score").toString().toInt()) {
+                        setContentView(R.layout.name_entry)
+                        mMediaPlayer!!.stop()
+                        mMediaPlayer = MediaPlayer.create(this, R.raw.menu_song)
+                        mMediaPlayer!!.isLooping = true
+                        mMediaPlayer!!.start()
+                        highscore = true
+                        break
+                    }
+                    Log.d("Scores", "${document.id} => ${document.data}")
+                }
+                if (!highscore) {
+                    endGame()
+                }
+            }
+            .addOnFailureListener {
+                Log.e("Scores", "Error getting document in checkScore")
+            }
+    }
+
+    fun addHighscore() {
+        // Create a new user with a name and score
+        val user = hashMapOf(
+            "user" to name,
+            "score" to score
+        )
+
+        // Add a new document with a generated ID in the users name
+        db.collection("highscores").document(name)
+            .set(user)
+            .addOnSuccessListener { Log.d("Scores", "DocumentSnapshot added with ID") }
+            .addOnFailureListener { e -> Log.w("Scores", "Error adding document", e) }
+
+        endGame()
+    }
+
+    fun displayHighscores() {
+        var score_names = arrayOf<TextView>(
+            findViewById(R.id.first_name),
+            findViewById(R.id.second_name),
+            findViewById(R.id.third_name),
+            findViewById(R.id.fourth_name),
+            findViewById(R.id.fifth_name)
+        )
+
+        var scores = arrayOf<TextView>(
+            findViewById(R.id.first_score),
+            findViewById(R.id.second_score),
+            findViewById(R.id.third_score),
+            findViewById(R.id.fourth_score),
+            findViewById(R.id.fifth_score)
+        )
+
+        db.collection("highscores").orderBy("score", Query.Direction.DESCENDING)
+            .limit(5).get()
+            .addOnSuccessListener { result ->
+                var i = 0
+                for (document in result) {
+                    score_names[i].text = document.id
+                    scores[i].text = document.get("score").toString()
+                    i++
+                    Log.d("Scores", "${document.id} => ${document.data}")
+                }
+            }
+            .addOnFailureListener {
+                Log.e("Scores", "Error getting document in displayHighscores")
+            }
     }
 }
